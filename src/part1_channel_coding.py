@@ -182,6 +182,9 @@ def run_coding_demo():
     print('=' * 60)
 
     error_probabilities = np.array([0.001, 0.003, 0.01, 0.03, 0.06, 0.1])
+
+    # ===== Hamming(7,4) 演示 =====
+    print('\n--- Hamming(7,4) 编码 ---')
     uncoded_ber = []
     coded_ber = []
 
@@ -208,6 +211,36 @@ def run_coding_demo():
         print(f'⏸️ 尚未完成核心函数：{error}')
     except Exception as error:
         print(f'❌ Part 1 运行失败：{error}')
+
+    # ===== 选做：卷积码演示 =====
+    print('\n--- 选做：(2,1,3) 卷积码 + Viterbi 译码 ---')
+    try:
+        conv_bits = generate_bits(2000, seed=2026)
+        conv_encoded = convolutional_encode(conv_bits)
+
+        # 验证无误传输下译码正确性
+        decoded_no_error = viterbi_decode_hard(conv_encoded)
+        ber_no_error = calculate_ber(conv_bits, decoded_no_error)
+        print(f'  无误传输 BER: {ber_no_error:.4f} (应为 0.0000)')
+
+        # 不同误码率下 BSC 传输 + Viterbi 译码
+        conv_ber = []
+        for index, probability in enumerate(error_probabilities):
+            conv_rx = binary_symmetric_channel(conv_encoded, probability, seed=300 + index)
+            conv_decoded = viterbi_decode_hard(conv_rx)
+            conv_ber.append(calculate_ber(conv_bits, conv_decoded))
+
+        plot_ber_curve(
+            error_probabilities,
+            {'未编码': uncoded_ber, 'Hamming(7,4)': coded_ber, '卷积码(2,1,3)-Viterbi': conv_ber},
+            '信道编码 BER 对比 (含卷积码)',
+            'coding_ber_curve_conv.png',
+        )
+        print('✅ 已生成 results/coding_ber_curve_conv.png')
+    except NotImplementedError as error:
+        print(f'⏸️ 选做尚未完成：{error}')
+    except Exception as error:
+        print(f'❌ 卷积码演示运行失败：{error}')
 
 
 if __name__ == '__main__':

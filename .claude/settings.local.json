@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(PYTHONUTF8=1 python convert_md2docx.py)",
+      "Bash(PYTHONUTF8=1 python grading/calculate_grade.py)"
+    ]
+  }
+}
