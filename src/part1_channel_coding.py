@@ -6,6 +6,7 @@ Part 1：信道编码实验
 """
 
 import numpy as np
+# pylint: disable=import-error
 from utils import (
     binary_symmetric_channel,
     calculate_ber,
@@ -113,8 +114,16 @@ def convolutional_encode(bits):
     if not np.all((bits == 0) | (bits == 1)):
         raise ValueError('bits 只能包含 0 或 1')
 
-    # TODO: 选做任务，可参考课件第6章卷积码部分。
-    raise NotImplementedError('选做：请实现卷积码编码')
+    bits_with_tail = np.append(bits, [0, 0])
+    delayed_1, delayed_2 = 0, 0
+    encoded = []
+    for bit in bits_with_tail:
+        # g1=111: bit ⊕ d1 ⊕ d2
+        # g2=101: bit ⊕ d2
+        encoded.extend([bit ^ delayed_1 ^ delayed_2, bit ^ delayed_2])
+        delayed_2 = delayed_1
+        delayed_1 = bit
+    return np.array(encoded, dtype=int)
 
 
 def viterbi_decode_hard(received_bits):
@@ -125,8 +134,45 @@ def viterbi_decode_hard(received_bits):
     if len(received_bits) % 2 != 0:
         raise ValueError('卷积码接收序列长度必须是 2 的倍数')
 
-    # TODO: 选做任务，可使用汉明距离作为路径度量。
-    raise NotImplementedError('选做：请实现 Viterbi 硬判决译码')
+    # Trellis: next_state[curr][input] = (next, (out1, out2))
+    # States: 0=00, 1=01, 2=10, 3=11
+    trellis = {
+        0: {0: (0, (0, 0)), 1: (2, (1, 1))},
+        1: {0: (0, (1, 1)), 1: (2, (0, 0))},
+        2: {0: (1, (1, 0)), 1: (3, (0, 1))},
+        3: {0: (1, (0, 1)), 1: (3, (1, 0))},
+    }
+
+    num_steps = len(received_bits) // 2
+    num_states = 4
+
+    path_metrics = np.full(num_states, np.inf)
+    path_metrics[0] = 0.0
+    survivors = [[None] * num_states for _ in range(num_steps)]
+
+    for step in range(num_steps):
+        received_pair = received_bits[2 * step : 2 * step + 2]
+        new_metrics = np.full(num_states, np.inf)
+        for curr_state in range(num_states):
+            if np.isinf(path_metrics[curr_state]):
+                continue
+            for input_bit in (0, 1):
+                next_state, expected = trellis[curr_state][input_bit]
+                hamming = np.sum(received_pair != np.array(expected))
+                candidate = path_metrics[curr_state] + hamming
+                if candidate < new_metrics[next_state]:
+                    new_metrics[next_state] = candidate
+                    survivors[step][next_state] = (curr_state, input_bit)
+        path_metrics = new_metrics
+
+    best_state = int(np.argmin(path_metrics))
+    decoded = []
+    for step in range(num_steps - 1, -1, -1):
+        prev_state, input_bit = survivors[step][best_state]
+        decoded.append(input_bit)
+        best_state = prev_state
+    decoded.reverse()
+    return np.array(decoded[:-2], dtype=int)
 
 
 def run_coding_demo():

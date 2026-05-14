@@ -5,6 +5,7 @@ Part 2：信道均衡实验
 """
 
 import numpy as np
+# pylint: disable=import-error
 from utils import (
     bpsk_demodulate,
     bpsk_modulate,
@@ -46,7 +47,7 @@ def estimate_zf_equalizer(channel, num_taps):
                 A[i + j, j] = channel[i]
     d = np.zeros(n_rows)
     d[n_rows // 2] = 1.0
-    taps, *_ = np.linalg.lstsq(A, d, rcond=None)
+    taps, *_ = np.linalg.lstsq(A, d, rcond=None)  # pylint: disable=no-member
     return taps
 
 
@@ -127,8 +128,10 @@ def run_equalization_demo():
         lms_output = apply_fir_filter(rx, lms_taps)
 
         raw_bits = bpsk_demodulate(rx[: len(bits)])
+        zf_bits = bpsk_demodulate(zf_output[: len(bits)])
         eq_bits = bpsk_demodulate(lms_output[: len(bits)])
         print(f'均衡前 BER: {calculate_ber(bits, raw_bits):.4f}')
+        print(f'ZF 均衡后 BER: {calculate_ber(bits, zf_bits):.4f}')
         print(f'LMS 均衡后 BER: {calculate_ber(bits, eq_bits):.4f}')
 
         plot_equalization_results(symbols, rx, lms_output, 'equalization_eye_comparison.png')
